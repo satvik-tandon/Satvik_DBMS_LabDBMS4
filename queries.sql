@@ -20,7 +20,7 @@ GROUP BY s.SUPP_ID, s.SUPP_NAME, s.SUPP_CITY, s.SUPP_PHONE
 HAVING COUNT(DISTINCT sp.PRO_ID) > 1;
 
 -- Find the least expensive product from each category and print the table with category id, name, product name and price of the product
-SELECT c.cat_ID, c.cat_name, MIN(sp.Min_Price) AS Min_Price
+SELECT c.cat_ID, c.cat_name, p.PRO_NAME, MIN(sp.Min_Price) AS Min_Price
 FROM category c
 JOIN (
     SELECT p.cat_ID, p.pro_name, MIN(s.supp_price) AS Min_Price
@@ -45,4 +45,27 @@ WHERE CUS_NAME LIKE 'A%' OR CUS_NAME LIKE '%A';
 -- Create a stored procedure to display supplier id, name, Rating(Average rating of all the products sold by every customer) and
 -- Type_of_Service. For Type_of_Service, If rating =5, print “Excellent Service”,If rating >4 print “Good Service”, If rating >2 print “Average
 -- Service” else print “Poor Service”. Note that there should be one rating per supplier.
-
+DELIMITER &&
+CREATE PROCEDURE proc()
+BEGIN
+SELECT
+        s.SUPP_ID,
+        s.SUPP_NAME,
+        ROUND(AVG(r.RAT_RATSTARS), 2) AS AverageRating,
+        CASE
+            WHEN AVG(r.RAT_RATSTARS) = 5 THEN 'Excellent Service'
+            WHEN AVG(r.RAT_RATSTARS) > 4 THEN 'Good Service'
+            WHEN AVG(r.RAT_RATSTARS) > 2 THEN 'Average Service'
+            ELSE 'Poor Service'
+        END AS Type_of_Service
+    FROM
+        supplier s
+    LEFT JOIN supplier_pricing sp ON s.SUPP_ID = sp.SUPP_ID
+    LEFT JOIN product p ON sp.PRO_ID = p.PRO_ID
+    LEFT JOIN `order` o ON sp.PRICING_ID = o.PRICING_ID
+    LEFT JOIN rating r ON o.ORD_ID = r.ORD_ID
+    GROUP BY
+        s.SUPP_ID, s.SUPP_NAME;
+END &&
+DELIMITER ;
+call proc()
